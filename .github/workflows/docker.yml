@@ -9,22 +9,22 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the code
+      # Étape 1 : Cloner le code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up Docker Buildx
+      # Étape 2 : Configurer Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Login to Docker Hub
+      # Étape 3 : Connexion à Docker Hub
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build and Push Docker Image
+      # Étape 4 : Construire et pousser l'image Docker
       - name: Build and Push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -36,30 +36,27 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      # Install Kind
       - name: Install Kind
         run: |
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
 
-      # Create Kubernetes cluster with Kind
       - name: Create Kubernetes cluster with Kind
         run: kind create cluster
-
-      # Set up kubectl for Kind
       - name: Set up kubectl for Kind
         run: |
           mkdir -p $HOME/.kube
           kind get kubeconfig > $HOME/.kube/config
 
-      # Apply Kubernetes manifests
+      - name: Debug file structure
+        run: |
+          ls -R
+          ls ./k8s
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f ./k8s/deployment.yaml
           kubectl apply -f ./k8s/service.yaml
-
-      # Verify Kubernetes resources
       - name: Verify Kubernetes resources
         run: |
           kubectl get pods
