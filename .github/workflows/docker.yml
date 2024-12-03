@@ -56,8 +56,8 @@ jobs:
       # Apply Kubernetes manifests
       - name: Apply Kubernetes manifests
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
+          kubectl apply -f ./k8s/deployment.yaml
+          kubectl apply -f ./k8s/service.yaml
 
       # Verify Kubernetes resources
       - name: Verify Kubernetes resources
