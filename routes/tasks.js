@@ -11,7 +11,6 @@ router.get('/', (req, res) => {
   res.json(tasks);
 });
 
-// Get a single task by ID
 router.get('/:id', (req, res) => {
   const taskId = parseInt(req.params.id);
   const task = tasks.find(t => t.id === taskId);
