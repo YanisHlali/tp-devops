@@ -11,11 +11,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Debug file structure
-        run: ls -R
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -39,44 +34,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
-      - name: Debug file structure
-        run: ls -R
-
-      - name: Install Kind
+      - name: Install Helm
         run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-      - name: Delete existing Kind clusters (if any)
-        run: kind delete cluster || true
-
-      - name: Create Kubernetes cluster with Kind
-        run: kind create cluster
-
-      - name: Set up kubectl for Kind
+      - name: Add Helm repository
         run: |
-          mkdir -p $HOME/.kube
-          kind get kubeconfig > $HOME/.kube/config
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Install Prometheus with Helm
+        run: |
+          helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+            --reuse-values \
+            --set prometheusRule.additionalRulesEnabled=true \
+            --set-file prometheusRule.additionalRules=k8s/alerting-rules.yaml
 
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/hpa.yaml
-
-      - name: Apply Alerting Rules to Prometheus
-        run: |
-          helm upgrade prometheus prometheus-community/kube-prometheus-stack \
-            --reuse-values \
-            --set prometheusRule.additionalRulesEnabled=true \
-            --set-file prometheusRule.additionalRules=k8s/alerting-rules.yaml
-
-      - name: Verify Kubernetes resources
-        run: |
-          kubectl get pods
-          kubectl get svc
-          kubectl get hpa
