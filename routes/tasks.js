@@ -7,7 +7,6 @@ let tasks = [
   { id: 2, title: 'Build an app', completed: false },
 ];
 
-// Get all tasks
 router.get('/', (req, res) => {
   res.json(tasks);
 });
