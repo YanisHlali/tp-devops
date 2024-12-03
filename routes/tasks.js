@@ -20,7 +20,6 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// Create a new task
 router.post('/', (req, res) => {
   const newTask = {
     id: tasks.length + 1,
