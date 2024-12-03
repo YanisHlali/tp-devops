@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 
-// In-memory task storage
 let tasks = [
   { id: 1, title: 'Learn Node.js', completed: false },
   { id: 2, title: 'Build an app', completed: false },
