@@ -6,7 +6,37 @@ on:
       - main
 
 jobs:
+  build-and-analyze:
+    runs-on: ubuntu-latest
+    steps:
+      # Étape 1 : Récupérer le code source
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Étape 2 : Configurer Node.js (si nécessaire)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      # Étape 3 : Installer les dépendances
+      - name: Install dependencies
+        run: npm install
+
+      # Étape 4 : Analyse SonarQube
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          npm install sonar-scanner --save-dev
+          npx sonar-scanner \
+            -Dsonar.projectKey=tasks-app \
+            -Dsonar.sources=./src \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
   build-and-push:
+    needs: build-and-analyze
     runs-on: ubuntu-latest
     steps:
       # Étape 1 : Récupérer le code source
@@ -72,4 +102,3 @@ jobs:
           # Mise à jour de l'image
           kubectl --namespace=default set image deployment/tasks-app tasks-app=yanishlali/node-app:latest
           kubectl --namespace=default rollout status deployment/tasks-app
-
