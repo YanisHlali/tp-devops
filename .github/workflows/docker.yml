@@ -56,11 +56,18 @@ jobs:
         run: |
           # Créer le répertoire ~/.ssh et définir les bonnes permissions
           mkdir -p $HOME/.ssh
+          echo "Création du répertoire ~/.ssh :"
+          ls -ld $HOME/.ssh  # Affiche les permissions du répertoire
+
           chmod 700 $HOME/.ssh  # Fixer les permissions du répertoire
+          echo "Permissions du répertoire ~/.ssh après chmod 700 :"
+          ls -ld $HOME/.ssh  # Vérifie les permissions après modification
 
           # Ajouter la clé privée SSH avec les bonnes permissions
           echo "${SSH_PRIVATE_KEY}" > $HOME/.ssh/id_rsa
           chmod 600 $HOME/.ssh/id_rsa  # Fixer les permissions du fichier de clé privée
+          echo "Permissions du fichier ~/.ssh/id_rsa :"
+          ls -l $HOME/.ssh/id_rsa  # Vérifie les permissions du fichier de clé privée
 
           # Ajouter la clé d'hôte de la machine distante pour éviter les problèmes de "host verification"
           ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts
