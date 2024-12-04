@@ -34,7 +34,6 @@ jobs:
       - name: Run tests
         run: npx jest
 
-      # Étape 6 : Analyse avec SonarCloud
       - name: SonarCloud Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
