@@ -54,27 +54,21 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          # Vérification et création du répertoire ~/.ssh avec les bonnes permissions
+          # Créer le répertoire ~/.ssh et définir les bonnes permissions
           mkdir -p $HOME/.ssh
           chmod 700 $HOME/.ssh  # Fixer les permissions du répertoire
-
-          # Vérification du contenu du répertoire .ssh
-          ls -la $HOME/.ssh
 
           # Ajouter la clé privée SSH avec les bonnes permissions
           echo "${SSH_PRIVATE_KEY}" > $HOME/.ssh/id_rsa
           chmod 600 $HOME/.ssh/id_rsa  # Fixer les permissions du fichier de clé privée
 
-          # Ajouter la clé d'hôte de la machine distante (pour éviter les problèmes de "host verification")
+          # Ajouter la clé d'hôte de la machine distante pour éviter les problèmes de "host verification"
           ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts
-
-          # Débogage : Vérifier que la clé privée est correctement écrite (sans l'afficher)
-          echo "SSH_PRIVATE_KEY set" 
 
           # Etablir le tunnel SSH en arrière-plan
           nohup ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
 
-          # Attente de 5 secondes pour s'assurer que le tunnel SSH est configuré
+          # Attente de 5 secondes pour s'assurer que le tunnel SSH est bien établi
           sleep 5
 
       # Appliquer les manifests Kubernetes pour déployer l'application
