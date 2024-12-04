@@ -19,21 +19,22 @@ jobs:
         with:
           node-version: '16'
 
+      # Étape 3 : Configurer Java
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # Étape 3 : Installer les dépendances
+      # Étape 4 : Installer les dépendances
       - name: Install dependencies
         run: npm install
 
-      # Étape 4 : Exécuter les tests Jest
+      # Étape 5 : Exécuter les tests Jest
       - name: Run tests
-        run: npm test
+        run: npx jest
 
-      # Étape 5 : Analyse avec SonarCloud
+      # Étape 6 : Analyse avec SonarCloud
       - name: SonarCloud Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -45,7 +46,6 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.branch.name=main
-
 
   build-and-push:
     needs: build-and-analyze
@@ -82,29 +82,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Étape 2 : Installer Minikube
+      # Étape 2 : Vérifier Docker
+      - name: Verify Docker Installation
+        run: docker --version
+
+      # Étape 3 : Installer Minikube
       - name: Install Minikube
         run: |
           curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
           sudo install minikube-linux-amd64 /usr/local/bin/minikube
 
-      # Étape 3 : Démarrer Minikube
+      # Étape 4 : Démarrer Minikube
       - name: Start Minikube
         env:
           MINIKUBE_IN_STYLE: false
         run: |
           minikube start --driver=docker
 
-      # Étape 4 : Configurer kubectl
+      # Étape 5 : Configurer kubectl
       - name: Configure kubectl
         run: |
           minikube kubectl -- get pods -A
 
-      # Étape 5 : Appliquer les manifests Kubernetes
+      # Étape 6 : Valider et appliquer les fichiers Kubernetes
+      - name: Validate Kubernetes manifests
+        run: |
+          kubectl apply --dry-run=client -f ./k8s/deployment.yaml
+          kubectl apply --dry-run=client -f ./k8s/service.yaml
+          kubectl apply --dry-run=client -f ./k8s/hpa.yaml
+
       - name: Deploy to Kubernetes
         run: |
           kubectl config use-context minikube
-          kubectl apply -f ./k8s/deployment.yaml --validate=false
+          kubectl apply -f ./k8s/deployment.yaml
           kubectl apply -f ./k8s/service.yaml
           kubectl apply -f ./k8s/hpa.yaml
 
