@@ -41,7 +41,7 @@ jobs:
           npx sonar-scanner \
             -Dsonar.projectKey=tasks-app \
             -Dsonar.organization=yanishlali \
-            -Dsonar.sources=./src \
+            -Dsonar.sources=. \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN
 
