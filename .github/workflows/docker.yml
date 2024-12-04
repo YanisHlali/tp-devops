@@ -39,11 +39,13 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           npx sonar-scanner \
-            -Dsonar.projectKey=tasks-app \
+            -Dsonar.projectKey=tp-devops \
             -Dsonar.organization=yanishlali \
             -Dsonar.sources=. \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=$SONAR_TOKEN
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.branch.name=main
+
 
   build-and-push:
     needs: build-and-analyze
