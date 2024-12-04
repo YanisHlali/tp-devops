@@ -49,7 +49,6 @@ jobs:
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
           export KUBECONFIG=$HOME/.kube/config
 
-      # Configuration de SSH et établissement du tunnel
       - name: Set up SSH and establish tunnel
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -61,10 +60,16 @@ jobs:
           chmod 600 $HOME/.ssh/id_rsa
 
           echo "Ajout de la clé d'hôte pour éviter les problèmes de vérification"
-          ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts || { echo "Erreur : Impossible d'ajouter l'hôte."; exit 1; }
+          if ! ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts; then
+            echo "Erreur : Impossible d'ajouter l'hôte. Vérifiez l'accessibilité de 192.168.1.100 via SSH."
+            exit 1
+          fi
 
           echo "Test de la connexion SSH"
-          ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ubuntu@192.168.1.100 exit || { echo "Erreur : La connexion SSH a échoué."; exit 1; }
+          if ! ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ubuntu@192.168.1.100 exit; then
+            echo "Erreur : La connexion SSH a échoué. Vérifiez la clé privée, l'utilisateur, et l'accessibilité de l'hôte."
+            exit 1
+          fi
 
           echo "Établissement du tunnel SSH"
           nohup ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
