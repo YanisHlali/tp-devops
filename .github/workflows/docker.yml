@@ -35,6 +35,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up SSH for tunnel
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 192.168.1.100 >> ~/.ssh/known_hosts
+          # Tunnel SSH pour rediriger le port 31543 (Minikube) vers le port local 8080
+          ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
+
       - name: Configure kubectl
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
