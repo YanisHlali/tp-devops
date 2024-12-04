@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Étape 2 : Configurer Node.js (si nécessaire)
+      # Étape 2 : Configurer Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -23,17 +23,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Étape 4 : Analyse SonarQube
-      - name: SonarQube Scan
+      # Étape 4 : Exécuter les tests Jest
+      - name: Run tests
+        run: npm test
+
+      # Étape 5 : Analyse avec SonarCloud
+      - name: SonarCloud Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          npm install sonar-scanner --save-dev
           npx sonar-scanner \
             -Dsonar.projectKey=tasks-app \
+            -Dsonar.organization=yanishlali \
             -Dsonar.sources=./src \
-            -Dsonar.host.url=http://localhost:9000 \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN
 
   build-and-push:
     needs: build-and-analyze
