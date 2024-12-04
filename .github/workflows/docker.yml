@@ -47,40 +47,42 @@ jobs:
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
           export KUBECONFIG=$HOME/.kube/config
 
-      # Etape pour configurer SSH et établir un tunnel
+      # Configuration SSH et tunnel
       - name: Set up SSH for tunnel
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          # Créer le répertoire ~/.ssh et définir les bonnes permissions
+          # Créer le répertoire ~/.ssh et définir les permissions
+          echo "Création du répertoire ~/.ssh et configuration des permissions"
           mkdir -p $HOME/.ssh
-          echo "Création du répertoire ~/.ssh :"
-          ls -ld $HOME/.ssh  # Affiche les permissions du répertoire
-
-          chmod 700 $HOME/.ssh  # Fixer les permissions du répertoire
-          echo "Permissions du répertoire ~/.ssh après chmod 700 :"
-          ls -ld $HOME/.ssh  # Vérifie les permissions après modification
-
-          # Ajouter la clé privée SSH avec les bonnes permissions
+          chmod 700 $HOME/.ssh
           echo "${SSH_PRIVATE_KEY}" > $HOME/.ssh/id_rsa
-          chmod 600 $HOME/.ssh/id_rsa  # Fixer les permissions du fichier de clé privée
-          echo "Permissions du fichier ~/.ssh/id_rsa :"
-          ls -l $HOME/.ssh/id_rsa  # Vérifie les permissions du fichier de clé privée
+          chmod 600 $HOME/.ssh/id_rsa
 
-          # Ajouter la clé d'hôte de la machine distante pour éviter les problèmes de "host verification"
+          # Ajouter la clé d'hôte de la machine distante
+          echo "Ajout de la clé d'hôte pour éviter les problèmes de vérification"
           ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts
 
-          # Etablir le tunnel SSH en arrière-plan
-          nohup ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
+          # Tester la connexion SSH
+          echo "Test de la connexion SSH"
+          ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ubuntu@192.168.1.100 exit
+          if [ $? -ne 0 ]; then
+            echo "La connexion SSH a échoué. Vérifiez la clé privée ou l'accessibilité de l'hôte."
+            exit 1
+          fi
 
-          # Attente de 5 secondes pour s'assurer que le tunnel SSH est bien établi
+          # Établir le tunnel SSH en arrière-plan
+          echo "Établissement du tunnel SSH"
+          nohup ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
           sleep 5
 
-      # Appliquer les manifests Kubernetes pour déployer l'application
+      # Appliquer les manifests Kubernetes
       - name: Apply Kubernetes manifests
         run: |
+          echo "Application des manifests Kubernetes"
           kubectl apply -f ./k8s/deployment.yaml --validate=false
           kubectl apply -f ./k8s/service.yaml
           kubectl apply -f ./k8s/hpa.yaml
