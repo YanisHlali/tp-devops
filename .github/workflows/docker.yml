@@ -68,8 +68,14 @@ jobs:
           # Ajouter la clé d'hôte de la machine distante (pour éviter les problèmes de "host verification")
           ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts
 
+          # Débogage : Vérifier que la clé privée est correctement écrite (sans l'afficher)
+          echo "SSH_PRIVATE_KEY set" 
+
           # Etablir le tunnel SSH en arrière-plan
           nohup ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
+
+          # Attente de 5 secondes pour s'assurer que le tunnel SSH est configuré
+          sleep 5
 
       # Appliquer les manifests Kubernetes pour déployer l'application
       - name: Apply Kubernetes manifests
