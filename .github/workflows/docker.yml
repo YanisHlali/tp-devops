@@ -40,32 +40,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Étape 2 : Configurer le fichier kubeconfig depuis les secrets
+      # Étape 2 : Installer Minikube
+      - name: Install Minikube
+        run: |
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+      # Étape 3 : Démarrer Minikube
+      - name: Start Minikube
+        env:
+          MINIKUBE_IN_STYLE: false
+        run: |
+          minikube start --driver=docker
+
+      # Étape 4 : Configurer kubectl
       - name: Configure kubectl
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          minikube kubectl -- get pods -A
 
-      # Étape 3 : Établir un tunnel SSH pour accéder à l'API Kubernetes
-      - name: Set up SSH tunnel
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 192.168.1.100 >> ~/.ssh/known_hosts
-          nohup ssh -N -L 8080:127.0.0.1:8080 ubuntu@192.168.1.100 &
-          sleep 5
-
-      # Étape 4 : Appliquer les manifests Kubernetes
+      # Étape 5 : Appliquer les manifests Kubernetes
       - name: Deploy to Kubernetes
         run: |
-          kubectl --server=http://127.0.0.1:8080 set image deployment/tasks-app tasks-app=yanishlali/node-app:latest
-          kubectl --server=http://127.0.0.1:8080 rollout status deployment/tasks-app
-          kubectl --server=http://127.0.0.1:8080 apply -f ./k8s/deployment.yaml --validate=false
-          kubectl --server=http://127.0.0.1:8080 apply -f ./k8s/service.yaml
-          kubectl --server=http://127.0.0.1:8080 apply -f ./k8s/hpa.yaml
+          kubectl set image deployment/tasks-app tasks-app=yanishlali/node-app:latest
+          kubectl rollout status deployment/tasks-app
+          kubectl apply -f ./k8s/deployment.yaml --validate=false
+          kubectl apply -f ./k8s/service.yaml
+          kubectl apply -f ./k8s/hpa.yaml
