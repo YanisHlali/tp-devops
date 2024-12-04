@@ -7,19 +7,32 @@ spec:
   selector:
     matchLabels:
       app: tasks-app
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: tasks-app
     spec:
       containers:
-      - name: tasks-app
-        image: yanishlali/node-app:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 3000
+        - name: tasks-app
+          image: yanishlali/node-app:latest
+          ports:
+            - containerPort: 3000
+---
+apiVersion: flannel.io/v1
+kind: Flagger
+metadata:
+  name: tasks-app-canary
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tasks-app
+  metrics:
+    - interval: 30s
+      successThreshold: 1
+  service:
+    name: tasks-service
+    port: 3000
+  rollout:
+    maxTrafficShift: 25
+    canaryReplicas: 1
