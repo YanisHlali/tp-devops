@@ -47,42 +47,32 @@ jobs:
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
           export KUBECONFIG=$HOME/.kube/config
 
-      # Configuration SSH et tunnel
-      - name: Set up SSH for tunnel
+      # Configuration de SSH et établissement du tunnel
+      - name: Set up SSH and establish tunnel
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          # Créer le répertoire ~/.ssh et définir les permissions
           echo "Création du répertoire ~/.ssh et configuration des permissions"
           mkdir -p $HOME/.ssh
           chmod 700 $HOME/.ssh
           echo "${SSH_PRIVATE_KEY}" > $HOME/.ssh/id_rsa
           chmod 600 $HOME/.ssh/id_rsa
 
-          # Ajouter la clé d'hôte de la machine distante
           echo "Ajout de la clé d'hôte pour éviter les problèmes de vérification"
-          ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts
+          ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts || { echo "Erreur : Impossible d'ajouter l'hôte."; exit 1; }
 
-          # Tester la connexion SSH
           echo "Test de la connexion SSH"
-          ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ubuntu@192.168.1.100 exit
-          if [ $? -ne 0 ]; then
-            echo "La connexion SSH a échoué. Vérifiez la clé privée ou l'accessibilité de l'hôte."
-            exit 1
-          fi
+          ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ubuntu@192.168.1.100 exit || { echo "Erreur : La connexion SSH a échoué."; exit 1; }
 
-          # Établir le tunnel SSH en arrière-plan
           echo "Établissement du tunnel SSH"
           nohup ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
           sleep 5
 
-      # Appliquer les manifests Kubernetes
+      # Appliquer les manifests Kubernetes pour déployer l'application
       - name: Apply Kubernetes manifests
         run: |
-          echo "Application des manifests Kubernetes"
           kubectl apply -f ./k8s/deployment.yaml --validate=false
           kubectl apply -f ./k8s/service.yaml
           kubectl apply -f ./k8s/hpa.yaml
