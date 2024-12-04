@@ -9,15 +9,22 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
+      # Étape 1 : Récupérer le code source
       - name: Checkout code
         uses: actions/checkout@v3
+
+      # Étape 2 : Configurer Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      # Étape 3 : Se connecter à DockerHub
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Étape 4 : Construire et publier l'image Docker
       - name: Build and Push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -29,22 +36,36 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      # Étape 1 : Récupérer le code source
       - name: Checkout code
         uses: actions/checkout@v3
+
+      # Étape 2 : Configurer le fichier kubeconfig depuis les secrets
       - name: Configure kubectl
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-          export KUBECONFIG=$HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      # Étape 3 : Établir un tunnel SSH pour accéder à l'API Kubernetes
+      - name: Set up SSH tunnel
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 192.168.1.100 >> ~/.ssh/known_hosts
+          nohup ssh -N -L 8080:127.0.0.1:8080 ubuntu@192.168.1.100 &
+          sleep 5
+
+      # Étape 4 : Appliquer les manifests Kubernetes
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/tasks-app tasks-app=yanishlali/node-app:latest
-          kubectl rollout status deployment/tasks-app
-      - name: Apply Kubernetes manifests
-        run: |
+          kubectl --server=http://127.0.0.1:8080 set image deployment/tasks-app tasks-app=yanishlali/node-app:latest
+          kubectl --server=http://127.0.0.1:8080 rollout status deployment/tasks-app
           kubectl --server=http://127.0.0.1:8080 apply -f ./k8s/deployment.yaml --validate=false
           kubectl --server=http://127.0.0.1:8080 apply -f ./k8s/service.yaml
           kubectl --server=http://127.0.0.1:8080 apply -f ./k8s/hpa.yaml
-
