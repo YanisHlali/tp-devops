@@ -9,18 +9,22 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
+      # Checkout du code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Configurer Docker Buildx pour le build multi-plateforme
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # Se connecter à DockerHub
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Build et Push de l'image Docker
       - name: Build and Push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -32,9 +36,11 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      # Checkout du code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Configuration de kubectl avec la clé kubeconfig depuis les secrets
       - name: Configure kubectl
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
@@ -43,20 +49,27 @@ jobs:
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
           export KUBECONFIG=$HOME/.kube/config
 
+      # Etape pour configurer SSH et établir un tunnel
       - name: Set up SSH for tunnel
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          # Création du répertoire .ssh
-          mkdir -p ~/.ssh
-          # Ajouter la clé privée SSH
-          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          # Ajouter la clé d'hôte de la machine distante (pour éviter les problèmes de "host verification")
-          ssh-keyscan -H 192.168.1.100 >> ~/.ssh/known_hosts
-          # Etablir le tunnel SSH
-          ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
+          # Vérifier que le répertoire ~/.ssh existe et y accéder correctement
+          mkdir -p $HOME/.ssh
+          echo "Vérification du répertoire .ssh"
+          ls -la $HOME/.ssh
 
+          # Ajouter la clé privée SSH
+          echo "${SSH_PRIVATE_KEY}" > $HOME/.ssh/id_rsa
+          chmod 600 $HOME/.ssh/id_rsa
+
+          # Ajouter la clé d'hôte de la machine distante (pour éviter les problèmes de "host verification")
+          ssh-keyscan -H 192.168.1.100 >> $HOME/.ssh/known_hosts
+
+          # Etablir le tunnel SSH en arrière-plan
+          nohup ssh -N -L 8080:192.168.49.2:31543 ubuntu@192.168.1.100 &
+
+      # Appliquer les manifests Kubernetes pour déployer l'application
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f ./k8s/deployment.yaml --validate=false
