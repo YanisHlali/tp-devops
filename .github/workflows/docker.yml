@@ -61,8 +61,15 @@ jobs:
       # Étape 5 : Appliquer les manifests Kubernetes
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/tasks-app tasks-app=yanishlali/node-app:latest
-          kubectl rollout status deployment/tasks-app
+          kubectl config use-context minikube
           kubectl apply -f ./k8s/deployment.yaml --validate=false
           kubectl apply -f ./k8s/service.yaml
           kubectl apply -f ./k8s/hpa.yaml
+
+          # Vérification des déploiements disponibles
+          kubectl get deployments -n default
+
+          # Mise à jour de l'image
+          kubectl --namespace=default set image deployment/tasks-app tasks-app=yanishlali/node-app:latest
+          kubectl --namespace=default rollout status deployment/tasks-app
+
